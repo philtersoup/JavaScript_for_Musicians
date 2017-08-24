@@ -35,136 +35,110 @@
 
 
   var scaleNo = Oscillators_gui.Scale;
+  function audioSetup(){
+    Oscillators = [];
+        MasterGain = new p5.Gain();
+        OscGain = new p5.Gain();
+        Filt = new p5.Filter();
+        Filt.setType('lowpass');
 
+
+        initOscs();
+
+
+        OscGain.amp(0.95);
+        OscGain.disconnect();
+        OscGain.connect(Filt);
+
+
+        LFO = new p5.Oscillator();
+        LFO.disconnect();
+        LFO.setType('sine');
+        LFO.freq(0.002);
+        // LFO.phase(0.1)
+        LFO.start();
+
+        LFO.mult(0.55);
+
+        // LFO.freq(Oscillators[2]);
+        Oscillators[0].amp(LFO,0.6);
+        Oscillators[1].phase(0.2);
+        Oscillators[1].amp(LFO,0.03);
+        Oscillators[2].amp(LFO,0.042);
+
+        Oscillators[1].panPosition = LFO;
+        Oscillators[2].panPosition = LFO;
+
+        // Oscillators[0].pan(LFO);
+        // Oscillators[1].pan(LFO,0.03);
+        // Oscillators[2].pan(LFO,0.02);
+        Filt.freq(LFO);
+
+
+
+        Filt.disconnect();
+        Filt.connect(MasterGain);
+
+
+        Reverb = new p5.Reverb();
+        Reverb.disconnect();
+        Reverb.process(Filt,2,0.5);
+
+        Delay = new p5.Delay();
+        Delay.setType('pingPong')
+        Delay.process(Reverb, 0.72, .77, 1200);
+        Delay.drywet(0.25);
+        Delay.delayTime(LFO);
+
+        Delay.connect(MasterGain);
+        MasterGain.connect();
+  }
+  function guiSetup(){
+      var gui = new dat.GUI();
+        gui.add(Oscillators_gui, 'Scale',{ Major: 0, MajorPenta: 1, Aeoleon: 2 } ).onChange(function(value){
+        scaleNo = floor(Oscillators_gui.Scale);
+        }
+
+        );
+
+        // gui.add(scaleNo,0,2);
+        var oscG = gui.addFolder('Oscillators');
+        oscG.add(Oscillators_gui, 'osc1_Level', 0, 1).name('Square');
+        oscG.add(Oscillators_gui, 'osc2_Level', 0, 1).name('Sawtooth');
+        oscG.add(Oscillators_gui, 'osc3_Level', 0, 1).name('Triangle');
+
+
+        var filtG = gui.addFolder('Filter');
+        filtG.add(Filter_gui, 'freq',100,16000).name('CutOff Frequency').onChange(function(value){
+        Filt.freq(Filter_gui.freq);
+        });
+
+        filtG.add(Filter_gui, 'res',0,110).name('Resonance').onChange(function(value){
+        Filt.res(Filter_gui.res);
+        });
+  }
   function setup() {
 
-    Oscillators = [];
+
     createCanvas(windowWidth, windowHeight);
 
-
-
-    var gui = new dat.GUI();
-    gui.add(Oscillators_gui, 'Scale',{ Major: 0, MajorPenta: 1, Aeoleon: 2 } ).onChange(function(value){
-    scaleNo = floor(Oscillators_gui.Scale);
-    }
-
-    );
-
-    // gui.add(scaleNo,0,2);
-    var oscG = gui.addFolder('Oscillators');
-    oscG.add(Oscillators_gui, 'osc1_Level', 0, 1).name('Square');
-    oscG.add(Oscillators_gui, 'osc2_Level', 0, 1).name('Sawtooth');
-    oscG.add(Oscillators_gui, 'osc3_Level', 0, 1).name('Triangle');
-
-
-    var filtG = gui.addFolder('Filter');
-    filtG.add(Filter_gui, 'freq',100,16000).name('CutOff Frequency').onChange(function(value){
-      Filt.freq(Filter_gui.freq);
-
-    });
-    filtG.add(Filter_gui, 'res',0,110).name('Resonance').onChange(function(value){
-      filtG.add(Filter_gui, 'freq',100,16000).name('CutOff Frequency').onChange(function(value){
-        Filt.res(Filter_gui.res);
-
-      });
-    });
-
-
-
-
-
-    MasterGain = new p5.Gain();
-    OscGain = new p5.Gain();
-    Filt = new p5.Filter();
-    Filt.setType('lowpass');
-
-
-    initOscs();
-
-
-    OscGain.amp(0.95);
-    OscGain.disconnect();
-    OscGain.connect(Filt);
-
-
-    LFO = new p5.Oscillator();
-    LFO.disconnect();
-    LFO.setType('sine');
-    LFO.freq(0.002);
-    // LFO.phase(0.1)
-    LFO.start();
-
-    LFO.mult(0.55);
-
-    // LFO.freq(Oscillators[2]);
-    Oscillators[0].amp(LFO,0.6);
-    Oscillators[1].phase(0.2);
-    Oscillators[1].amp(LFO,0.03);
-    Oscillators[2].amp(LFO,0.042);
-
-    Oscillators[1].panPosition = LFO;
-    Oscillators[2].panPosition = LFO;
-
-    // Oscillators[0].pan(LFO);
-    // Oscillators[1].pan(LFO,0.03);
-    // Oscillators[2].pan(LFO,0.02);
-    Filt.freq(LFO);
-
-
-
-    Filt.disconnect();
-    Filt.connect(MasterGain);
-
-
-    Reverb = new p5.Reverb();
-    Reverb.disconnect();
-    Reverb.process(Filt,2,0.5);
-
-    Delay = new p5.Delay();
-    Delay.setType('pingPong')
-    Delay.process(Reverb, 0.72, .77, 1200);
-    Delay.drywet(0.25);
-    Delay.delayTime(LFO);
-
-    Delay.connect(MasterGain);
-    MasterGain.connect();
-
-
+    audioSetup();
+    guiSetup();
     fft = new p5.FFT();
     fft.setInput(MasterGain);
     background(0);
-
-    // var myPart = new p5.Part();
-
-    // var pulse = new p5.Phrase('pulse', step, [1, 1, 1, 1]);
-    // myPart.addPhrase(pulse); 
-    // myPart.setBPM(70);
-    // myPart.start();
-    // myPart.loop();
-
   }
 
-  function step(){
-  // console.log('called');
-  // Env2.play(Filt,0,0.1);
-  // Env.play(Filt.freq);
+function draw() {
+    noCursor();
 
-  // Filt.freq(Env);
-  beat += 1;
-  beat = beat % 16;
-  // console.log(beat);
-
-
-  }
-
-
-  function draw() {
     noStroke();
     fill(255,20);
     textSize(14);
     text('philterSoup',(1 - mouseX/width) * width - width*0.25,height * 0.25);
+
     background(0,30);
-    noCursor();
+
 
     var index = floor((2.71828/3*mouseX/width * scales[scaleNo].length));
 
@@ -174,19 +148,16 @@
     var str = 'Oscillators_gui.osc'+(i+1)+'_Level';
 
     Oscillators[i].amp(eval(str));
-    // Oscillators[i].pan(mouseY/height * 2 - 1);
+
     Oscillators[i].freq(pow(2,i)*midiToFreq(note + i * 7 ),0.01);
 
     }
     LFO.freq(mouseY/height * 0.025, 0.01);
 
-
-
     drawStars();
     drawFFT();
-
-
   }
+
   function drawStars(){
     for(var i = 0 ; i < width; i+= width/256 ){
       stroke(255);
@@ -197,9 +168,10 @@
     }
 
   }
+
   function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-}
+  }
   function drawFFT(){
 
     // drawStars();
