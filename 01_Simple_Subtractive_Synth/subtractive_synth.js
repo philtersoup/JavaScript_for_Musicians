@@ -134,10 +134,10 @@
     fft.setInput(MasterGain);
     background(0);
 
-    // var myPart = new p5.Part(); // on créer un objet Part qui va nous permettre de modifier la vitesse de lecture
-    // // on créer une phrase qui appelle la fonction 'step' à chaque temps. C'est dans cette fonction que l'on va jouer les sons
+    // var myPart = new p5.Part();
+
     // var pulse = new p5.Phrase('pulse', step, [1, 1, 1, 1]);
-    // myPart.addPhrase(pulse); // on ajoute notre phrase à l'objet part
+    // myPart.addPhrase(pulse); 
     // myPart.setBPM(70);
     // myPart.start();
     // myPart.loop();
