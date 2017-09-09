@@ -4,7 +4,7 @@
     osc3_Level: 0.2,
     Scale: 1
   };
-
+  var col;
   var Envelope_gui = {
     attackTime: 0.001,
     decayTime: 0.25,
@@ -15,13 +15,13 @@
   };
 
   var Filter_gui = {
-    freq: 2500,
+    freq: 2000,
     res: 1,
     type: 'lowpass'
   };
 
 
-  var Oscillators, LFO, OscGain, Filt, Env, Delay, Reverb, MasterGain;
+  var Pluck, Oscillators, LFO, OscGain, Filt, Env, Delay, Reverb, MasterGain;
   var fft;
 
   var beat = 0;
@@ -36,7 +36,7 @@
 
   var scaleNo = Oscillators_gui.Scale;
   function audioSetup(){
-    Oscillators = [];
+        Oscillators = [];
         MasterGain = new p5.Gain();
         // OscGain = new p5.Gain();
         Filt = new p5.Filter();
@@ -52,42 +52,58 @@
 
 
         LFO = new p5.Oscillator();
-        LFO.disconnect();
-        LFO.setType('sine');
-        LFO.freq(0.002);
-        // LFO.phase(0.1)
-        LFO.start();
 
-        LFO.mult(5);
+        LFO.setType('sine');
+        LFO.freq(0.005);
+        LFO.amp(0.71);
+        LFO.phaseAmount = 3.14;
+        LFO.start();
+        LFO.disconnect();
+
+
+
+        LFO.freq(Oscillators[2],0.1);
+
+
+        // LFO.mult(4);
 
         // LFO.freq(Oscillators[2]);
-        // Oscillators[0].amp(LFO,0.6);
-        Oscillators[1].phase(0.2);
-        Oscillators[1].amp(LFO,0.3);
-        Oscillators[2].amp(LFO,0.042);
+        // Oscillators[0].freq(LFO.mult(50));
+
+        // Oscillators[1].phase(0.02);
+        Oscillators[0].amp(LFO);
+        Oscillators[1].amp(LFO);
+        Oscillators[2].amp(LFO);
 
         Oscillators[1].panPosition = LFO;
         Oscillators[2].panPosition = LFO;
+        Oscillators[0].width = LFO;
 
-        // Oscillators[0].pan(LFO);
-        // Oscillators[1].pan(LFO,0.03);
-        // Oscillators[2].pan(LFO,0.02);
-        Filt.freq(LFO);
+
+        // Filt.freq(LFO);
+        // Oscillators[2].freq[LFO];
 
 
 
         Filt.disconnect();
+        // Filt.freq.value = LFO;
+
+        Env = new p5.Env();
+        Env.setADSR(0.0001, 0.25, 0.001, 0.005);
+        Env.setRange(0.8,0);
+        Env.setExp();
         // Filt.connect(MasterGain);
 
 
         // Reverb = new p5.Reverb();
-        // Reverb.disconnect();
+        // Reverb.di  sconnect();
         // Reverb.process(Filt,2,0.5);
         //
         Delay = new p5.Delay();
         Delay.setType('pingPong')
-        Delay.process(Filt, 0.72, .77, 1200);
-        Delay.drywet(0.125);
+        Delay.process(Filt, 0.72, .65, 300);
+        Delay.drywet(0.255);
+        // Delay.feedback(LFO);
         // Delay.delayTime(LFO);
         Delay.connect(MasterGain);
 
@@ -95,7 +111,7 @@
   }
   function guiSetup(){
       var gui = new dat.GUI();
-        gui.add(Oscillators_gui, 'Scale',{ Major: 0, MajorPenta: 1, Aeoleon: 2 } ).onChange(function(value){
+        gui.add(Oscillators_gui, 'Scale',{ Major: 0, MajorPenta: 1, Aeolian: 2 } ).onChange(function(value){
         scaleNo = floor(Oscillators_gui.Scale);
         }
 
@@ -127,33 +143,44 @@
 
 
     createCanvas(windowWidth, windowHeight);
+    colorMode(HSL,255);
+
     frameRate(30);
     audioSetup();
     guiSetup();
+
+
+    col = color(160, 55, 100);
+
     fft = new p5.FFT();
     fft.setInput(MasterGain);
-    background(0);
+    background(col);
   }
 
 function draw() {
-    noCursor();
+    // noCursor();
 
     noStroke();
     fill(255,20);
     textSize(14);
-    text('philterSoup',(1 - mouseX/width) * width - width*0.25,height * 0.25);
+    text('philterSoup',width-mouseX,height * 0.25);
 
     background(0,30);
 
 
-    var index = floor((2.71828/3* mouseX/width * scales[scaleNo].length));
+        var index = floor((2.71828/3* mouseX/width * scales[scaleNo].length));
 
-    var note = 12 + 12 * floor(1 + (mouseY/height * 3))+scales[scaleNo][index];
+        var note = 12 + 12 * floor(1 + (mouseY/height * 3))+scales[scaleNo][index];
 
-    for(var i = 0; i < Oscillators.length; i++){
-    Oscillators[i].freq(pow(2,i)*midiToFreq(note + i * 7 ),0.01);
-    }
-    LFO.freq(mouseY/height * 0.025, 0.01);
+        for(var i = 0; i < Oscillators.length; i++){
+        Oscillators[i].freq(pow(2,i)*midiToFreq(note + i * 7 ),0.01);
+        }
+
+
+
+    LFO.freq.value = (1 - mouseY/height) * 40;
+
+
 
     drawStars();
     drawFFT();
@@ -173,14 +200,30 @@ function draw() {
   function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   }
+  function mousePressed(){
+    var Plucknote = 48 + scales[scaleNo][floor(Math.random()*scales[scaleNo].length)];
+    Pluck.freq(midiToFreq(Plucknote),0.001);
+    col.levels[0] = floor(randomGaussian(127,200));
+    Env.play(Pluck,0,0.001);
+
+
+
+
+    // fill(127);
+
+    // ellipse(randomGaussian(0,width),Math.random()*height * 0.25,50,50);
+
+  }
   function drawFFT(){
 
     // drawStars();
     var spectrum = fft.analyze();
+    var energy = fft.getEnergy('bass');
 
-
+    col.levels[2] = floor(energy/255 * 255);
+    // console.log(col.levels[2]*255);
      for (var i = 0; i < spectrum.length/40; i++) {
-      fill(spectrum[i], spectrum[i]/50, 127);
+      fill(200-col.levels[0], spectrum[i]/3, spectrum[i]/2);
       var x = map(i, 0, spectrum.length/40, 0, width);
       var h = map(spectrum[i], 0, 255, 0, height * 0.75);
       noStroke();
@@ -205,10 +248,18 @@ function draw() {
 
   function initOscs(){
 
-    var osc1 = new p5.Oscillator();
-    osc1.setType('square');
+    Pluck = new p5.Oscillator();
+    Pluck.setType('sine');
+    Pluck.disconnect();
+    Pluck.connect(Filt);
+    Pluck.amp(0);
+    Pluck.start();
+
+
+    var osc1 = new p5.Pulse();
+    // osc1.setType('square');
     osc1.freq(440);
-    osc1.amp(Oscillators_gui.osc1_Level);
+    // osc1.amp(Oscillators_gui.osc1_Level);
 
     osc1.start();
     osc1.disconnect();
@@ -218,7 +269,8 @@ function draw() {
     var osc2 = new p5.Oscillator();
     osc2.setType('sawtooth');
     osc2.freq(220);
-    osc2.amp(Oscillators_gui.osc2_Level);
+    // osc2.amp(Oscillators_gui.osc2_Level);
+    osc2.phaseAmount = 0.5;
     osc2.disconnect();
     osc2.connect(Filt);
     osc2.start();
@@ -227,7 +279,7 @@ function draw() {
     var osc3 = new p5.Oscillator();
     osc3.setType('triangle');
     osc3.freq(110);
-    osc3.amp(Oscillators_gui.osc3_Level);
+    // osc3.amp(Oscillators_gui.osc3_Level);
     osc3.disconnect();
     osc3.connect(Filt);
     osc3.start();
