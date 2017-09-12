@@ -5,7 +5,7 @@ var ac;
 var buffer;
 var loadState = false;
 
-var playRate, dur = 2;
+var playRate, dur = 5;
 var voices = [];
 var maxVoice = 50;
 
@@ -21,8 +21,8 @@ function getData() {
   // source = ac.createBufferSource();
   var request = new XMLHttpRequest();
 
-  request.open('GET', 'Ambient_track_2.mp3', true);
-
+  // request.open('GET', 'Ambient_track_2.mp3', true);
+  request.open('GET', 'piano.mp3', true);
   request.responseType = 'arraybuffer';
 
 
@@ -59,11 +59,11 @@ function setup() {
   // reverb.process(grainMix, 5, 5);
   // reverb.drywet(0.35);
 
-  // delay = new p5.Delay();
-  // delay.setType('pingPong');
-  //
-  // delay.process(grainMix,.65,.50,2000);
-  // delay.drywet(0.60);
+  delay = new p5.Delay();
+  delay.setType('pingPong');
+
+  delay.process(grainMix,.65,.50,2000);
+  delay.drywet(0.60);
 
   textSize(32);
   textAlign('center');
@@ -106,7 +106,7 @@ Voice.prototype.playGrain = function(){
 
   this.play = function(){
 
-    var grain = new Grain(mouseY/height * buffer.duration, mouseX/width * dur);
+    var grain = new Grain(mouseX/width * buffer.duration, mouseY/height * dur);
 
     that.grains[that.grainCount] = grain;
     that.grainCount += 1;
@@ -115,7 +115,7 @@ Voice.prototype.playGrain = function(){
       that.grainCount = 0;
     }
 
-    that.timeOut = setTimeout(that.play,75);
+    that.timeOut = setTimeout(that.play,dur * 10);
   }
   if(loadState)
   this.play();
@@ -138,7 +138,7 @@ function Grain(offset,duration){
 
   this.sound = ac.createBufferSource();
   this.sound.buffer = buffer;
-  this.sound.playbackRate.value = this.seed * 4* playRate;
+  this.sound.playbackRate.value = 0.5 + playRate/10 ;
   this.sound.disconnect();
 
   this.gain = ac.createGain();
@@ -148,7 +148,7 @@ function Grain(offset,duration){
 
   this.sound.start(this.now,this.offset, this.duration);
   this.gain.gain.setValueAtTime(0.0, this.now);
-	this.gain.gain.linearRampToValueAtTime(this.amp,this.now + 4 * this.seed);
+	this.gain.gain.linearRampToValueAtTime(this.amp,this.now + 5 * this.seed);
 	this.gain.gain.linearRampToValueAtTime(0,this.now + this.duration  );
 
   this.sound.stop(this.now + this.duration + 0.1);
