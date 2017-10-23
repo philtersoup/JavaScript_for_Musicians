@@ -7,14 +7,14 @@ var globalDecay;
 
 
 function setup() {
-  createCanvas(640, 480);
+  createCanvas(windowWidth, windowHeight);
   isConnected = false;
   setupOsc(8338, 3334);
   flock = new Flock();
-  globalDecay = 2;
+  globalDecay = 4;
   // flockarray = {};
 
-  for(var i=0; i<35; i++){
+  for(var i=0; i<15; i++){
     var boid = new Boid(random(width),random(height),flock.boids.length)
     flock.addBoid(boid);
     // flockArray.push(boid.position);
@@ -24,8 +24,8 @@ function setup() {
 function draw() {
 
   if(flock.boids.length < 5 ){
-    console.log('more');
-    for(var i=0; i<5; i++){
+    // console.log('more');
+    for(var i=0; i<2; i++){
       var boid = new Boid(random(width),random(height),flock.boids.length)
       flock.addBoid(boid);
       // flockArray.push(boid.position);
@@ -84,22 +84,23 @@ Flock.prototype.addBoid = function(b) {
 
 function Boid(x,y,id) {
   this.id = id;
+  this.birthTime = frameCount;
   this.reproduced = false;
   this.decayRate = globalDecay * random(0,0.25);
-  this.age = floor(random(150,255));
+  this.age = floor(random(100,255));
   this.gender = floor(random(0,2));
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
   this.position = createVector(x,y);
-  this.r = 3.0;
+  this.r = 4.0;
   this.maxspeed = 1;    // Maximum speed
-  this.maxforce = 0.15; // Maximum steering force
+  this.maxforce = 0.05; // Maximum steering force
 }
 
 Boid.prototype.reproduce = function(){
 // background(0,10);
-if( random(0,1) > 0.15 && !this.reproduced && flock.boids.length < 50){
-flock.addBoid(new Boid(this.position.x+random(-50,50),this.position.y+random(-50,50),flock.length));
+if( random(0,1) > 0.05 && !this.reproduced && flock.boids.length < 500){
+flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
 this.reproduced = true;
 }
 
@@ -126,8 +127,8 @@ Boid.prototype.flock = function(boids) {
   var coh = this.cohesion(boids);   // Cohesion
   // Arbitrarily weight these forces
   sep.mult(1.5);
-  ali.mult(1.0);
-  coh.mult(1.0);
+  ali.mult(1.3);
+  coh.mult(1.2);
   // Add the force vectors to acceleration
   this.applyForce(sep);
   this.applyForce(ali);
@@ -170,7 +171,12 @@ Boid.prototype.render = function() {
   // Draw a triangle rotated in the direction of velocity
   var theta = this.velocity.heading() + radians(90);
 
-
+  if(frameCount - this.birthTime < 20 ){
+  // console.log(frameCount - this.birthTime);
+  fill(0,255,0,this.age)
+  stroke(0,255,0,this.age);
+  }
+  else {
   switch(this.gender+1){
     case 1:
     fill(255,0,0,this.age)
@@ -184,6 +190,7 @@ Boid.prototype.render = function() {
 
 
   }
+}
 
   push();
   translate(this.position.x,this.position.y);
@@ -207,7 +214,7 @@ Boid.prototype.borders = function() {
 // Separation
 // Method checks for nearby boids and steers away
 Boid.prototype.separate = function(boids) {
-  var desiredseparation = 20.0;
+  var desiredseparation = 45.0;
   var steer = createVector(0,0);
   var count = 0;
   // For every boid in the system, check if it's too close
@@ -243,7 +250,7 @@ Boid.prototype.separate = function(boids) {
 // Alignment
 // For every nearby boid in the system, calculate the average velocity
 Boid.prototype.align = function(boids) {
-  var neighbordist = 50;
+  var neighbordist = 70;
   var sum = createVector(0,0);
   var count = 0;
   for (var i = 0; i < boids.length; i++) {
@@ -252,9 +259,9 @@ Boid.prototype.align = function(boids) {
       sum.add(boids[i].velocity);
       count++;
       stroke(0,this.age);
-      if(this.gender != boids[i].gender){
+      if((frameCount - this.birthTime > 30) && (this.gender != boids[i].gender)){
       line(this.position.x,this.position.y,boids[i].position.x,boids[i].position.y);
-      this.reproduced = true;
+      // this.reproduced = true;
       boids[i].reproduce();
     }
       // if(random(0,2)>1.2)
@@ -280,7 +287,7 @@ Boid.prototype.align = function(boids) {
 // Cohesion
 // For the average location (i.e. center) of all nearby boids, calculate steering vector towards that location
 Boid.prototype.cohesion = function(boids) {
-  var neighbordist = 50;
+  var neighbordist = 70;
   var sum = createVector(0,0);   // Start with empty vector to accumulate all locations
   var count = 0;
   for (var i = 0; i < boids.length; i++) {
