@@ -84,10 +84,10 @@ Flock.prototype.addBoid = function(b) {
 
 function Boid(x,y,id) {
   this.id = id;
-  this.birthTime = frameCount;
+  this.birthTime = floor(millis());
   this.reproduced = false;
   this.decayRate = globalDecay * random(0,0.25);
-  this.age = floor(random(100,255));
+  this.age = floor(random(1000,2550));
   this.gender = floor(random(0,2));
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
@@ -171,7 +171,7 @@ Boid.prototype.render = function() {
   // Draw a triangle rotated in the direction of velocity
   var theta = this.velocity.heading() + radians(90);
 
-  if(frameCount - this.birthTime < 20 ){
+  if( floor(millis()) - this.birthTime < 1700 ){
   // console.log(frameCount - this.birthTime);
   fill(0,255,0,this.age)
   stroke(0,255,0,this.age);
