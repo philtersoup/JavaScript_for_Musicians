@@ -9,7 +9,7 @@ var globalDecay;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   isConnected = false;
-  setupOsc(8338, 3334);
+  setupOsc(8338, 4000); //CHANGE PORT NO HERE 
   flock = new Flock();
   globalDecay = 4;
   // flockarray = {};
