@@ -9,9 +9,9 @@ var globalDecay;
 function setup() {
   createCanvas(windowWidth, windowHeight);
   isConnected = false;
-  setupOsc(8338, 4000); //CHANGE PORT NO HERE 
+  setupOsc(8338, 8000); //CHANGE PORT NO HERE
   flock = new Flock();
-  globalDecay = 4;
+  globalDecay = 5;
   // flockarray = {};
 
   for(var i=0; i<15; i++){
@@ -25,14 +25,15 @@ function draw() {
 
   if(flock.boids.length < 5 ){
     // console.log('more');
-    for(var i=0; i<2; i++){
+    for(var i=0; i<3; i++){
       var boid = new Boid(random(width),random(height),flock.boids.length)
       flock.addBoid(boid);
       // flockArray.push(boid.position);
     }
   }
-  background(255,180);
+  background(0,abs(sin(frameCount/100) * 255));
 	flock.run();
+  noStroke();
   textSize(32);
   text(flock.boids.length,width/2,height/2);
 }
@@ -64,8 +65,10 @@ Flock.prototype.run = function() {
   }
     else{
     this.boids[i].run(this.boids);
-    socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
-    Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y)]);
+    if(frameCount % 30 === 0){
+      socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (this.boids[i].age/this.boids[i].lifeSpan)]);
+    }
   }
 }
 
@@ -88,6 +91,7 @@ function Boid(x,y,id) {
   this.reproduced = false;
   this.decayRate = globalDecay * random(0,0.25);
   this.age = floor(random(1000,2550));
+  this.lifeSpan = this.age;
   this.gender = floor(random(0,2));
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
@@ -99,7 +103,7 @@ function Boid(x,y,id) {
 
 Boid.prototype.reproduce = function(){
 // background(0,10);
-if( random(0,1) > 0.05 && !this.reproduced && flock.boids.length < 500){
+if( random(0,1) > 0.25 && !this.reproduced && flock.boids.length < 50){
 flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
 this.reproduced = true;
 }
@@ -171,21 +175,21 @@ Boid.prototype.render = function() {
   // Draw a triangle rotated in the direction of velocity
   var theta = this.velocity.heading() + radians(90);
 
-  if( floor(millis()) - this.birthTime < 1700 ){
+  if( floor(millis()) - this.birthTime < 1700 * random(0,1) ){
   // console.log(frameCount - this.birthTime);
-  fill(0,255,0,this.age)
-  stroke(0,255,0,this.age);
+  fill(0,255,0,this.age / this.lifeSpan * 255)
+  stroke(0,255,0, this.age / this.lifeSpan * 255);
   }
   else {
   switch(this.gender+1){
     case 1:
-    fill(255,0,0,this.age)
-    stroke(255,0,0,this.age);
+    fill(255,0,0,this.age / this.lifeSpan * 255)
+    stroke(255,0,0, this.age / this.lifeSpan * 255);
     break;
 
     case 2:
-    fill(0,0,255,this.age)
-    stroke(0,0,255,this.age);
+    fill(0,0,255,this.age / this.lifeSpan * 255)
+    stroke(0,0,255,this.age / this.lifeSpan * 255);
     break;
 
 
@@ -258,7 +262,7 @@ Boid.prototype.align = function(boids) {
     if ((d > 0) && (d < neighbordist)) {
       sum.add(boids[i].velocity);
       count++;
-      stroke(0,this.age);
+      stroke(255,this.age % 255);
       if((frameCount - this.birthTime > 30) && (this.gender != boids[i].gender)){
       line(this.position.x,this.position.y,boids[i].position.x,boids[i].position.y);
       // this.reproduced = true;
@@ -315,7 +319,7 @@ function setupOsc(oscPortIn, oscPortOut) {
     isConnected = true;
     socket.emit('config', {
 			server: { port: oscPortIn,  host: '127.0.0.1'},
-			client: { port: oscPortOut, host: '127.0.0.1'}
+			client: { port: oscPortOut, host: '192.168.1.200'}
 		});
 	});
 	socket.on('message', function(msg) {
