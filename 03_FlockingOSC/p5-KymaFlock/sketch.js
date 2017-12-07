@@ -103,7 +103,7 @@ function Boid(x,y,id) {
 
 Boid.prototype.reproduce = function(){
 // background(0,10);
-if( random(0,1) > 0.25 && !this.reproduced && flock.boids.length < 50){
+if( random(0,1) > 0.15 && !this.reproduced && flock.boids.length < 150){
 flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
 this.reproduced = true;
 }
