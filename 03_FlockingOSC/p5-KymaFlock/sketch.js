@@ -4,6 +4,7 @@ var socket;
 var flockarray;
 var globalDecay;
 
+var maxLength;
 
 
 function setup() {
@@ -11,37 +12,41 @@ function setup() {
   isConnected = false;
   setupOsc(8338, 8000); //CHANGE PORT NO HERE
   flock = new Flock();
-  globalDecay = 5;
+  maxLength = 64;
   // flockarray = {};
 
-  for(var i=0; i<15; i++){
-    var boid = new Boid(random(width),random(height),flock.boids.length)
-    flock.addBoid(boid);
-    // flockArray.push(boid.position);
-  }
+  // for(var i=0; i<15; i++){
+  //   var boid = new Boid(random(width),random(height),flock.boids.length)
+  //   flock.addBoid(boid);
+  //   // flockArray.push(boid.position);
+  // }
 }
 
 function draw() {
 
-  if(flock.boids.length < 5 ){
-    // console.log('more');
-    for(var i=0; i<3; i++){
-      var boid = new Boid(random(width),random(height),flock.boids.length)
-      flock.addBoid(boid);
-      // flockArray.push(boid.position);
-    }
-  }
-  background(0,abs(sin(frameCount/100) * 255));
+  // if(flock.boids.length < 5 ){
+  //   // console.log('more');
+  //   for(var i=0; i<3; i++){
+  //     var boid = new Boid(random(width),random(height),flock.boids.length)
+  //     flock.addBoid(boid);
+  //     // flockArray.push(boid.position);
+  //   }
+  // }
+  background(0,127+abs(sin(frameCount/100) * 127));
 	flock.run();
   noStroke();
+  fill(255,0,0,127);
   textSize(32);
+
   text(flock.boids.length,width/2,height/2);
 }
 
 // Add a new boid into the System
 function mouseDragged() {
-  if(random(0,2)>1.3)
-  flock.addBoid(new Boid(mouseX,mouseY),flock.length);
+  // if(random(0,2)>1.3)
+  flock.addBoid(new Boid(mouseX,mouseY, flock.boids.length));
+  // console.log(flock.boids.length);
+
 }
 
 // The Nature of Code
@@ -57,21 +62,18 @@ function Flock() {
 }
 
 Flock.prototype.run = function() {
-  for (var i = 0; i < this.boids.length; i++) {
-
-    if(this.boids[i].age < 0){
-    // console.log('dead');
-    this.boids.splice(i);
-  }
-    else{
+  for (var i = 0; i < this.boids.length; i++){
     this.boids[i].run(this.boids);
     if(frameCount % 30 === 0){
       socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
-      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (this.boids[i].age/this.boids[i].lifeSpan)]);
+      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (1.0 - this.boids[i].age)]);
+    }
+    if(millis() - this.boids[i].birthTime > this.boids[i].lifeSpan){
+      socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), 0.0]);
+      flock.boids.splice(i);
     }
   }
-}
-
 }
 
 Flock.prototype.addBoid = function(b) {
@@ -86,27 +88,34 @@ Flock.prototype.addBoid = function(b) {
 // Methods for Separation, Cohesion, Alignment added
 
 function Boid(x,y,id) {
-  this.id = id;
-  this.birthTime = floor(millis());
-  this.reproduced = false;
-  this.decayRate = globalDecay * random(0,0.25);
-  this.age = floor(random(1000,2550));
-  this.lifeSpan = this.age;
-  this.gender = floor(random(0,2));
   this.acceleration = createVector(0,0);
   this.velocity = createVector(random(-1,1),random(-1,1));
   this.position = createVector(x,y);
   this.r = 4.0;
   this.maxspeed = 1;    // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
+
+  this.id = id;
+  this.birthTime = floor(millis());
+
+  this.reproduced = false;
+  // this.decayRate = globalDecay * random(0,0.25);
+
+  this.lifeSpan = 1000 * random(500);
+  this.age = 0;
+
+  this.gender = floor(random(0,2));
+
+  // console.log(this);
 }
 
 Boid.prototype.reproduce = function(){
 // background(0,10);
-if( random(0,1) > 0.15 && !this.reproduced && flock.boids.length < 150){
-flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
-this.reproduced = true;
-}
+
+  if( floor(10*random()) >= 9 && flock.boids.length < maxLength && !this.reproduced ){
+    flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
+    this.reproduced = true;
+  }
 
 
 }
@@ -141,16 +150,15 @@ Boid.prototype.flock = function(boids) {
 
 // Method to update location
 Boid.prototype.update = function() {
-  if(this.age>0) this.age -= this.decayRate;
-  // else this.age = 255;
-  // Update velocity
+
+  this.age = (millis() - this.birthTime) / (this.lifeSpan);
   this.velocity.add(this.acceleration);
-  // Limit speed
+
   this.velocity.limit(this.maxspeed);
   this.position.add(this.velocity);
-  // Reset accelertion to 0 each cycle
+
   this.acceleration.mult(0);
-  // socket.emit('message', ['/agent'+, 1]);
+
 }
 
 // A method that calculates and applies a steering force towards a target
@@ -172,29 +180,23 @@ Boid.prototype.death = function() {
 }
 
 Boid.prototype.render = function() {
-  // Draw a triangle rotated in the direction of velocity
   var theta = this.velocity.heading() + radians(90);
+  var alpha = 64 + this.age * 1270;
 
-  if( floor(millis()) - this.birthTime < 1700 * random(0,1) ){
-  // console.log(frameCount - this.birthTime);
-  fill(0,255,0,this.age / this.lifeSpan * 255)
-  stroke(0,255,0, this.age / this.lifeSpan * 255);
+  if(this.age <= 0.025){
+    fill(0,255,0,alpha);
+    stroke(0,255,0,alpha);
   }
-  else {
-  switch(this.gender+1){
-    case 1:
-    fill(255,0,0,this.age / this.lifeSpan * 255)
-    stroke(255,0,0, this.age / this.lifeSpan * 255);
-    break;
-
-    case 2:
-    fill(0,0,255,this.age / this.lifeSpan * 255)
-    stroke(0,0,255,this.age / this.lifeSpan * 255);
-    break;
-
-
+  else{
+    if(this.gender == 0){
+      fill(255,0,0,alpha);
+      stroke(255,0,0,alpha);
+    }
+    else if(this.gender == 1){
+      fill(0,0,255,alpha);
+      stroke(0,0,255,alpha);
+    }
   }
-}
 
   push();
   translate(this.position.x,this.position.y);
@@ -262,21 +264,13 @@ Boid.prototype.align = function(boids) {
     if ((d > 0) && (d < neighbordist)) {
       sum.add(boids[i].velocity);
       count++;
-      stroke(255,this.age % 255);
-      if((frameCount - this.birthTime > 30) && (this.gender != boids[i].gender)){
-      line(this.position.x,this.position.y,boids[i].position.x,boids[i].position.y);
-      // this.reproduced = true;
-      boids[i].reproduce();
-    }
-      // if(random(0,2)>1.2)
-      // flock.addBoid(new Boid(random(width),random(height)),flock.length);
-      // if(this.gender != boids[i].gender)
-      // console.log(d)
-
+      if((millis() - this.birthTime > 3000) && (this.gender != boids[i].gender)){
+        line(this.position.x,this.position.y,boids[i].position.x,boids[i].position.y);
+        boids[i].reproduce();
+      }
     }
   }
   if (count > 0) {
-    // console.log(d);
     sum.div(count);
     sum.normalize();
     sum.mult(this.maxspeed);
@@ -314,12 +308,13 @@ function receiveOsc(address, value) {
 }
 
 function setupOsc(oscPortIn, oscPortOut) {
+  // client: { port: oscPortOut, host: '192.168.1.200'}
 	socket = io.connect('http://127.0.0.1:8081', { port: 8081, rememberTransport: false });
 	socket.on('connect', function() {
     isConnected = true;
     socket.emit('config', {
 			server: { port: oscPortIn,  host: '127.0.0.1'},
-			client: { port: oscPortOut, host: '192.168.1.200'}
+      client: { port: oscPortOut, host: '192.168.1.200'}
 		});
 	});
 	socket.on('message', function(msg) {
