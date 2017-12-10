@@ -12,7 +12,7 @@ function setup() {
   isConnected = false;
   setupOsc(8338, 8000); //CHANGE PORT NO HERE
   flock = new Flock();
-  maxLength = 1;
+  maxLength = 64;
   // flockarray = {};
 
   // for(var i=0; i<15; i++){
@@ -46,7 +46,7 @@ function mouseDragged() {
   // if(random(0,2)>1.3)
   flock.addBoid(new Boid(mouseX,mouseY, flock.boids.length));
 
-  // console.log(flock.boids.length);
+  console.log(flock.boids.length);
 
 }
 
@@ -63,25 +63,26 @@ function Flock() {
 }
 
 Flock.prototype.run = function() {
-  for(var i  = 0; i < this.boids.length; i++){
-    this.boids[i].run(this.boids);
-    if(this.boids[i].age >= 1.0){
-      // console.log(this.boids[i].id);
-      socket.emit('message', ['/boid'+'/'+(this.boids[i].id+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
-      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), 0.0]);
-      flock.boids.splice(i,1);
+if(frameCount%30){
+    for(var i  = 0; i < this.boids.length; i++){
+      this.boids[i].run(this.boids);
+      if(this.boids[i].age >= 1.0){
+        // console.log(this.boids[i].id);
+        socket.emit('message', ['/boid'+'/'+(this.boids[i].id + 1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+        Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), 0.0]);
+        flock.boids.splice(i,1);
+      }
     }
+
+    for (var i = 0; i < this.boids.length; i++){
+      // this.boids[i].run(this.boids);
+      // if(frameCount % 30 === 0){
+          socket.emit('message', ['/boid'+'/'+(this.boids[i].id + 1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+          Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (1.0 - this.boids[i].age)]);
+      // }
+    }
+
   }
-
-  for (var i = 0; i < this.boids.length; i++){
-    // this.boids[i].run(this.boids);
-    // if(frameCount % 30 === 0){
-        socket.emit('message', ['/boid'+'/'+(this.boids[i].id+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
-        Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (1.0 - this.boids[i].age)]);
-    // }
-  }
-
-
 }
 
 Flock.prototype.addBoid = function(b) {
@@ -121,8 +122,9 @@ Boid.prototype.reproduce = function(){
 // background(0,10);
 
   if( floor(10*random()) >= 9 && flock.boids.length < maxLength && !this.reproduced ){
-    flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.length));
+    flock.addBoid(new Boid(this.position.x + random(-150,150),this.position.y+random(-50,50),flock.boids.length));
     this.reproduced = true;
+
   }
 
 
