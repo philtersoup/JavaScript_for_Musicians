@@ -12,7 +12,7 @@ function setup() {
   isConnected = false;
   setupOsc(8338, 8000); //CHANGE PORT NO HERE
   flock = new Flock();
-  maxLength = 64;
+  maxLength = 1;
   // flockarray = {};
 
   // for(var i=0; i<15; i++){
@@ -45,6 +45,7 @@ function draw() {
 function mouseDragged() {
   // if(random(0,2)>1.3)
   flock.addBoid(new Boid(mouseX,mouseY, flock.boids.length));
+
   // console.log(flock.boids.length);
 
 }
@@ -62,18 +63,25 @@ function Flock() {
 }
 
 Flock.prototype.run = function() {
-  for (var i = 0; i < this.boids.length; i++){
+  for(var i  = 0; i < this.boids.length; i++){
     this.boids[i].run(this.boids);
-    if(frameCount % 30 === 0){
-      socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
-      Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (1.0 - this.boids[i].age)]);
-    }
-    if(millis() - this.boids[i].birthTime > this.boids[i].lifeSpan){
-      socket.emit('message', ['/boid'+'/'+(i+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+    if(this.boids[i].age >= 1.0){
+      // console.log(this.boids[i].id);
+      socket.emit('message', ['/boid'+'/'+(this.boids[i].id+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
       Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), 0.0]);
-      flock.boids.splice(i);
+      flock.boids.splice(i,1);
     }
   }
+
+  for (var i = 0; i < this.boids.length; i++){
+    // this.boids[i].run(this.boids);
+    // if(frameCount % 30 === 0){
+        socket.emit('message', ['/boid'+'/'+(this.boids[i].id+1) , this.boids[i].position.x/width,1-this.boids[i].position.y/height,
+        Math.abs(this.boids[i].velocity.x), Math.abs(this.boids[i].velocity.y), (1.0 - this.boids[i].age)]);
+    // }
+  }
+
+
 }
 
 Flock.prototype.addBoid = function(b) {
@@ -96,12 +104,12 @@ function Boid(x,y,id) {
   this.maxforce = 0.05; // Maximum steering force
 
   this.id = id;
-  this.birthTime = floor(millis());
+  this.birthTime = millis();
 
   this.reproduced = false;
   // this.decayRate = globalDecay * random(0,0.25);
 
-  this.lifeSpan = 1000 * random(500);
+  this.lifeSpan = 100 * random(500);
   this.age = 0;
 
   this.gender = floor(random(0,2));
@@ -314,7 +322,7 @@ function setupOsc(oscPortIn, oscPortOut) {
     isConnected = true;
     socket.emit('config', {
 			server: { port: oscPortIn,  host: '127.0.0.1'},
-      client: { port: oscPortOut, host: '192.168.1.200'}
+      client: { port: oscPortOut, host: '127.0.0.1'}
 		});
 	});
 	socket.on('message', function(msg) {
